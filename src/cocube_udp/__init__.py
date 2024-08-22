@@ -4,37 +4,33 @@ from math import *
 from threading import Thread
 import uuid
 
-
-class CoCubeUDP:
-    def __init__(self, robotID, enable_return=True, ip_prefix='192.168.3.100', push_port=5000, port_listen_head=5000,
-                 local_ip='192.168.3.3'):
+class CoCube:
+    def __init__(self, robotID, gateway='192.168.3.1', local_ip='192.168.3.3', ip_prefix=100, enable_return=True, udp_port=5000):
         self.robotID = robotID
-        if ip_prefix == '192.168.3.100':
-            self.robotIP = ip_prefix[:-2] + f"{robotID:02d}"
-        else:
-            self.robotIP = ip_prefix
-        self.enable_return = enable_return
-        self.push_port = push_port
+        self.robot_ip = '.'.join(gateway.split('.')[:-1]) + f".{ip_prefix + robotID}"
+        self.robot_port = udp_port + robotID
         self.localIP = local_ip
-        self.listen_port = port_listen_head + robotID
+        self.enable_return = enable_return
+        self.local_port = udp_port
         self.sock_listen = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock_listen.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 1024)  # 增加发送缓冲区大小
         self.sock_listen.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 1024)  # 增加接收缓冲区大小
-        self.sock_listen.bind((self.localIP, self.listen_port))
+        self.sock_listen.bind((self.localIP, self.robot_port))
         self.sock_listen.settimeout(3)
 
         self.sock_send = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock_send.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 1024)  # 增加发送缓冲区大小
         self.sock_send.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 4096)  # 增加接收缓冲区大小
         self.sock_send.settimeout(3)
-        self.position_x = 0
-        self.position_y = 0
-        self.position_direction = 0
+        self.pos_x = 0
+        self.pos_y = 0
+        self.pos_direction = 0
         self.result = 0
         self.uuid_func = {}
         self.current_uuid = ""
         data_process_thread = Thread(target=self.receive_data_thread)
         data_process_thread.start()
+        print("Initial successfully!")
 
     def connected(self):
         if isinstance(self.message_general("position_X", [], debug=True, testConnct=True, feedback=True), str):
@@ -55,9 +51,9 @@ class CoCubeUDP:
                     self.result = data[2].strip()
                 elif data[0].strip() == "pos":
                     position = list(map(int, data[1:]))
-                    self.position_x = position[0] / 128
-                    self.position_y = position[1] / 128
-                    self.position_direction = position[2]
+                    self.pos_x = position[0] / 128
+                    self.pos_y = position[1] / 128
+                    self.pos_direction = position[2]
             except socket.timeout:
                 print("Timeout occurred: No response in receive_positions.")
             except Exception as e:
@@ -66,16 +62,16 @@ class CoCubeUDP:
 
     def send_data(self, str_msg):
         message_bytes = str_msg.encode()
-        print(f"send message: {str_msg}")
-        self.sock_send.sendto(message_bytes, (self.robotIP, self.push_port))
+        # print(f"send message: {str_msg}")
+        self.sock_send.sendto(message_bytes, (self.robot_ip, self.local_port))
 
-    def process_data(self, block, func, params, timeout=3):
+    def process_data(self, func, params, block, timeout=3):
         # send data
         random_uuid = uuid.uuid4().hex[:6]
-        print("create " + random_uuid)
+        # print("create " + random_uuid)
         self.uuid_func[random_uuid] = func
         self.send_data(f"{block},{random_uuid},{func},{','.join(map(str, params))}")
-        print(f"{block},{random_uuid},{func},{','.join(map(str, params))}")
+        # print(f"{block},{random_uuid},{func},{','.join(map(str, params))}")
 
         # wait for response
         if self.enable_return:

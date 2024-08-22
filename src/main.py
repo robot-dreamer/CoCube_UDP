@@ -1,14 +1,10 @@
-import math
+from src.cocube_udp import CoCube
 
-import CoCubeUDP
 import time
 import random
 
 if __name__ == '__main__':
-    robot1 = CoCubeUDP.CoCubeUDP(1, enable_return=False)
-    # robot2 = CoCubeUDP.CoCubeUDP(2)
-    # robot1.move_millisecs("forward",50,1000)
-    # robot2.wheels_break()
+    robot1 = CoCube(1, enable_return=False)
     while True:
         x = random.randint(1, 5)
         y = random.randint(1, 5)
