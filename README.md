@@ -19,6 +19,8 @@ https://microblocksfun.cn/run/microblocks.html
 
 ![Example Photo](./image/MicroBlocks_reset_param.png)
 
+现阶段还未正式开源上线，可以先手动刷入驱动程序 CoCube-server-udp-v05.ubp
+
 ## CoCube上位机程序
 
 本仓库cocube_udp目录下，为上位机程序。

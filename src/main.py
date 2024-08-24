@@ -13,5 +13,7 @@ if __name__ == '__main__':
         time.sleep(1)
         robot1.move("forward", 50)
         time.sleep(2)
+        robot1.move_by_steps("backward", 50, 50)
+        time.sleep(3)
         robot1.wheels_stop()
         time.sleep(0.1)
