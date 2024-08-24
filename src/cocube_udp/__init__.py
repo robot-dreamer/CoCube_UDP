@@ -4,8 +4,10 @@ from math import *
 from threading import Thread
 import uuid
 
+
 class CoCube:
-    def __init__(self, robotID, gateway='192.168.3.1', local_ip='192.168.3.3', ip_prefix=100, enable_return=True, udp_port=5000):
+    def __init__(self, robotID, gateway='192.168.3.1', local_ip='192.168.3.3', ip_prefix=100, enable_return=True,
+                 udp_port=5000):
         self.robotID = robotID
         self.robot_ip = '.'.join(gateway.split('.')[:-1]) + f".{ip_prefix + robotID}"
         self.robot_port = udp_port + robotID
@@ -68,10 +70,20 @@ class CoCube:
     def process_data(self, func, params, block, timeout=3):
         # send data
         random_uuid = uuid.uuid4().hex[:6]
-        # print("create " + random_uuid)
         self.uuid_func[random_uuid] = func
-        self.send_data(f"{block},{random_uuid},{func},{','.join(map(str, params))}")
-        # print(f"{block},{random_uuid},{func},{','.join(map(str, params))}")
+        # 处理参数，将字符串加上引号
+        if params:
+            formatted_params = []
+            for param in params:
+                if isinstance(param, str):
+                    formatted_params.append(f'"{param}"')
+                else:
+                    formatted_params.append(str(param))
+            # 构造最终的消息字符串
+            data_to_send = f"{block},{random_uuid},{func}," + ",".join(formatted_params)
+        else:
+            data_to_send = f"{block},{random_uuid},{func}"
+        self.send_data(data_to_send)
 
         # wait for response
         if self.enable_return:
@@ -101,8 +113,9 @@ class CoCube:
     def rotate(self, direction="left", speed=30):
         self.process_data(block="0", func="CoCube rotate", params=[direction, speed])
 
-    def move_millisecs(self, direction="forward", speed=40, duration=1000):
-        self.process_data(block="1", func="CoCube move for millisecs", params=[direction, speed, duration], timeout=3+duration/1000)
+    def move_millisecs(self, direction='forward', speed=40, duration=1000):
+        self.process_data(block="0", func="CoCube move for millisecs", params=[direction, speed, duration],
+                          timeout=3 + duration / 1000)
 
     def rotate_millisecs(self, direction="left", speed=40, duration=1000):
         self.process_data(block="1", func="CoCube rotate for millisecs", params=[direction, speed, duration],
