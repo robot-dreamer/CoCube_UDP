@@ -1,4 +1,4 @@
-from src.cocube_udp import CoCube
+from cocube_udp import CoCube
 
 import time
 import random
