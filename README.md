@@ -1,31 +1,39 @@
-## CoCube_UDP
-基于MicroBlocks固件，CoCube与上位机UDP通信的接口
+# Quick Start
 
+CoCube supports two wireless data transfer methods: Bluetooth and Wi-Fi. To ensure the stability of multi-agent algorithm deployment, we use the UDP protocol in Python to establish a connection with CoCube.Therefore, a router is required for data transfer within the local network.
 
-## CoCube固件
+## First Step： Flash .ubp file onto CoCube
+When you get the CoCube, the first step is to flash the basic interface program onto it. We use [MicroBlocks](https://microblocks.fun/run/microblocks.html) as the flashing platform. There are two ways to connect to the CoCube：USB or BLE. Once the connection is successful，you can drag the [wifi_udp.ubp](wifi_udp.ubp) file to the website. The file will then be flashed onto CoCube. Note that there is a blue block in Fig.1, which contains the related Wi-Fi connection parameters and should be modified according to your setup.
+![fig.1](/pic/microblocks_param.png)
+<center> Fig.1 </center>
+You should replace the blank line after “WiFi” with the name of your Wi-Fi."SSID" is the corresponding password. "gateway" is the gateway of your router. "hostip" is the IP
+ address of your computer.(So make sure your computer and CoCubes are in the same local area network) After getting the computer's IP, CoCube also needs to set up its own IP to communicate with the computer.“ip_prefix” is the prefix of CoCube's own IP, it is added with ‘ID’ to get CoCube's IP in current LAN. For example in Fig.1, its IP is "192.168.31.102". Finally, add "port_prefix" and "ID" to get the port number of CoCube, which is the default setting. After the modification is completed, click the block to update the parameters.
 
-通过MicroBlocks IDE，给CoCube烧录最新的固件程序。
-https://microblocksfun.cn/run/microblocks.html
+## Second Step: Setup the environment in the computer
+First ensure that the parameters in [yaml file](config.yml) and CoCube are synchronized.
+Then create a conda environment.
+> cd to/this/path
 
-## CoCube驱动程序
+> conda create --name cocube python==3.11
 
-通过MicroBlocks IDE，给CoCube上传一个UDP通信的程序。
+> conda activate cocube
 
-位于"文件->打开->示例->by board->CoCube->CoCube_server_udp"
+> pip install -r requirements.txt
 
-第一次使用时，需要输入一些配置参数，包含机器人ID、WiFi及密码、网关IP地址、上位机IP地址、IP前缀等信息。
+> git clone https://github.com/sybrenstuvel/Python-RVO2.git
 
-配置完成后，点击该积木块后，点击右上角绿色的"运行"按键即可。
+> cd Python-RVO2 
 
-![Example Photo](./image/MicroBlocks_reset_param.png)
+> python setup.py build
 
-现阶段还未正式开源上线，可以先手动刷入驱动程序 CoCube-server-udp-v05.ubp
+> python setup.py install
 
-## CoCube上位机程序
+## Third Step: Start Up！
+We offer three demonstrations to showcase CoCube's simplicity, ease of use, and powerful clustering capabilities.
 
-本仓库cocube_udp目录下，为上位机程序。
+1. In [follow your leader](cocube_follow_leader.py) n CoCubes make a small train, Every CoCube will regard the previous CoCube as its leader and keep following it.
+2. In [munkres](cocube_munkres.py), You can set up some targets, The munkres algorithm will calculate the minimum cost and assign the shortest path to each CoCube.[munkres for ICRA](cocube_munkres_for_icra.py) uses 32 CoCubes to make the formation of the letters “ICRA 2025”.
+3. In [RVO2](cocube_rvo2.py). Even number of CoCubes will swap positions in pairs, while Avoiding collisions.
 
-注意：请确保上位机和CoCube之间可以正常通信，如无法正常通信，请检查是否开启网络代理软件。
-
-## License
-`cocube` is distributed under the terms of the [MIT](https://spdx.org/licenses/MIT.html) license.
+# License
+cocube is distributed under the terms of the [MIT](https://spdx.org/licenses/MIT.html) license.
