@@ -26,6 +26,7 @@ to '_udpHandleBlockingMessage' {
     }
   }
   return false
+  return false
 }
 
 to '_udpHandleMessage' {
@@ -41,11 +42,13 @@ to '_udpHandleMessage' {
     }
   }
   return false
+  return false
 }
 
 to connect_wifi {
   wifiConnect wifi ssid robot_ip gateway netmask
   '[net:udpStart]' robot_port
+  return false
   return false
 }
 
@@ -72,6 +75,7 @@ to param_init {
   '[file:close]' 'param'
   sayIt '[param exist !]' 'robor_id = ' robot_id
   return false
+  return false
 }
 
 to reset_param robot_id wifi ssid gateway hostip netmask ip_prefix port_prefix enable {
@@ -91,6 +95,7 @@ to reset_param robot_id wifi ssid gateway hostip netmask ip_prefix port_prefix e
   '[file:close]' 'param'
   sayIt 'reset param successfully!'
   return false
+  return false
 }
 
 to send_position {
@@ -98,6 +103,7 @@ to send_position {
   atPut 3 udp_position_data (callCustomReporter '[sensors:position_y]')
   atPut 4 udp_position_data (callCustomReporter '[sensors:position_yaw]')
   '[net:udpSendPacket]' ('[data:joinStrings]' udp_position_data ',') host_ip host_port
+  return false
   return false
 }
 
@@ -109,6 +115,7 @@ to to_mb_args args {
     '[data:addLast]' ('[misc:jsonGet]' json ('[data:convertType]' i 'string')) result
   }
   return result
+  return false
 }
 
 to udp_handle_msg {
@@ -124,31 +131,31 @@ to udp_handle_msg {
     }
   }
   return false
+  return false
 }
 
-script 40 49 {
-forever {
-  sayIt ('CoCube position_X') ('CoCube position_Y') ('CoCube direction')
-}
-}
-
-script 339 49 {
-'set display color' 2342430
-}
-
-script 490 49 {
-whenBroadcastReceived 'start_send_position'
-if (_enable_send_position == 'true') {
-  forever {
-    send_position
-    waitMillis 50
-  }
-} else {
-  return 0
-}
+script 62 40 {
+whenStarted
+robot_id = 1
+reset_param robot_id 'wifiName' 'password' '192.168.31.1' '192.168.31.169' '255.255.255.0' 100 5000 true
+'[tft:clear]'
+param_init
+'[tft:text]' robot_id 65 80 (makeColor 0 255 0) 12 false
+connect_wifi
+'[tft:clear]'
+thread_manager = (newList 4 0)
+sendBroadcast 'start_send_position'
+sendBroadcast 'start_receive_message'
 }
 
-script 815 49 {
+script 600 170 {
+whenBroadcastReceived 'thread_3'
+atPut 3 thread_manager 1
+udp_handle_msg
+atPut 3 thread_manager 0
+}
+
+script 570 321 {
 whenBroadcastReceived 'start_receive_message'
 forever {
   buffer_tmp = ('[net:udpReceivePacket]')
@@ -173,18 +180,39 @@ forever {
 }
 }
 
-script 1331 49 {
+script 49 1237 {
+whenBroadcastReceived 'start_send_position'
+if (_enable_send_position == 'true') {
+  forever {
+    send_position
+    waitMillis 50
+  }
+} else {
+  return 0
+}
+}
+
+script 375 1237 {
+whenBroadcastReceived 'thread_2'
+atPut 2 thread_manager 1
+udp_handle_msg
+atPut 2 thread_manager 0
+}
+
+script 49 1527 {
 whenBroadcastReceived 'thread_1'
 atPut 1 thread_manager 1
 udp_handle_msg
 atPut 1 thread_manager 0
 }
 
-script 91 352 {
-reset_param robot_id 'RobotOnly' 'pjlabuav' '192.168.31.1' '192.168.31.169' '255.255.255.0' 100 5000 true
+script 851 1527 {
+forever {
+  sayIt ('CoCube position_X') ('CoCube position_Y') ('CoCube direction')
+}
 }
 
-script 529 428 {
+script 512 1529 {
 whenButtonPressed 'A'
 '[display:mbDisplayOff]'
 '[tft:text]' robot_id 100 100 (colorSwatch 100 255 57 255) 8 true
@@ -192,45 +220,19 @@ waitMillis 800
 '[display:mbDisplayOff]'
 }
 
-script 126 500 {
-whenStarted
-robot_id = 2
-'[tft:clear]'
-param_init
-'[tft:text]' robot_id 65 80 (makeColor 0 255 0) 12 false
-connect_wifi
-'[tft:clear]'
-thread_manager = (newList 4 0)
-sendBroadcast 'start_send_position'
-sendBroadcast 'start_receive_message'
+script 128 1722 {
+to param_init {}
 }
 
-script 518 871 {
-whenBroadcastReceived 'thread_2'
-atPut 2 thread_manager 1
-udp_handle_msg
-atPut 2 thread_manager 0
-}
-
-script 1322 871 {
-whenBroadcastReceived 'thread_4'
-atPut 3 thread_manager 1
-udp_handle_msg
-atPut 3 thread_manager 0
-}
-
-script 40 1199 {
-whenBroadcastReceived 'thread_3'
-atPut 3 thread_manager 1
-udp_handle_msg
-atPut 3 thread_manager 0
+script 40 2677 {
+to connect_wifi {}
 }
 
 
 module BMP Output
 author 'José García Yeste'
-version 2 9 
-depends TFT Files 
+version 2 10 
+depends _TFT _Files 
 description 'Display BMP files on a TFT screen.
 
 BMP files can be transferred to and from boards with a file systems using the put/get commands in the IDE file menu (available in "show advanced blocks" mode).
@@ -494,7 +496,7 @@ to drawBMPfile filename originX originY {
 
 module 'Basic Sensors' Input
 author MicroBlocks
-version 1 1 
+version 1 2 
 tags tilt acceleration light sensor 
 choices accelerometerRange '1' '2' '4' '8' 
 description 'Provides blocks to read tilt in the three axes, acceleration, temperature and light level. Many boards come with this particular set of sensors, such as the micro:bit, the Circuit Playground Express, the Calliope or the Citilab ED1.'
@@ -506,16 +508,17 @@ description 'Provides blocks to read tilt in the three axes, acceleration, tempe
   spec 'r' '[display:lightLevel]' 'light level'
   spec 'r' '[sensors:temperature]' 'temperature (°C)'
   spec 'r' '[sensors:magneticField]' 'magnetic field'
-  spec ' ' '_setAccelRange' 'set acceleration range _ g = 100' 'menu.accelerometerRange' '1'
+  advanced
+  spec ' ' 'setAccelRange' 'set acceleration range _ g = 100' 'menu.accelerometerRange' '1'
 
-to '_setAccelRange' n {
+to setAccelRange n {
   '[sensors:setAccelerometerRange]' (0 + n)
 }
 
 
 module CoCube
 author 'Liang Shuai'
-version 2 10 
+version 2 11 
 depends Tone Display TFT 'Motors/PID' 
 tags 'cocube robot' 
 choices cocube_rotate_Menu 'cocube;left' 'cocube;right' 
@@ -534,8 +537,9 @@ v2.3 Add blocks prompts
 v2.4 Unify positioning accuracy to 1/64
 v2.5 Adjust blocks order and delete RingTone
 v2.6 Adjust blocks order, name and default parameters
+v2.11 Improve the "CoCube move to" function logic
 '
-variables _cocube_set_right_speed _cocube_set_left_speed _cocube_error_angle _cocube_pid_i _cocube_pid_ratio _cocube_pid_initialized _cocube_pid_d _cocube_pid_p _cocube_error_distance _cocube_error_y _cocube_error_x _cocube_target_angle _cocube_rotate_mode_ _cocube_target_speed _cocube_target_x _cocube_target_y 
+variables _cocube_set_right_speed _cocube_set_left_speed _cocube_error_angle _cocube_pid_i _cocube_pid_ratio _cocube_pid_initialized _cocube_pid_d _cocube_pid_p _cocube_error_distance _cocube_error_y _cocube_error_x _cocube_target_angle 
 
   spec ' ' 'CoCube move for msecs' 'move _ at _ speed (0-50) for _ msecs' 'menu.cocube_move_Menu num num' 'cocube;forward' 40 1000
   spec ' ' 'CoCube rotate for msecs' 'rotate _ at _ speed (0-50) for _ msecs' 'menu.cocube_rotate_Menu num num' 'cocube;left' 30 1000
@@ -639,22 +643,19 @@ to 'CoCube move for msecs' direction speed time {
 
 to 'CoCube move to' target_x target_y speed {
   if ('CoCube on the mat') {
-    _cocube_target_x = target_x
-    _cocube_target_y = target_y
-    _cocube_target_speed = speed
-    forever {
-      comment 'calculate error'
-      '_cocube_calculate_distance_error target_x _ target_y _' _cocube_target_x _cocube_target_y
-      _cocube_target_angle = (('[misc:atan2]' _cocube_error_y _cocube_error_x) / 100)
-      '_cocube_calculate_angle_error_' _cocube_target_angle
-      if (_cocube_error_distance < 7) {
-        comment 'Arrived'
-        'CoCube wheels stop'
-        return 0
-      } else {
-        'CoCube set wheel' (_cocube_target_speed - ((_cocube_target_speed * _cocube_error_angle) / 20)) (_cocube_target_speed + ((_cocube_target_speed * _cocube_error_angle) / 20))
+    speed = speed
+    '_cocube_calculate_distance_error target_x _ target_y _' target_x target_y
+    if (_cocube_error_distance > 7) {
+      'CoCube point towards' target_x target_y speed
+      repeatUntil (_cocube_error_distance < 7) {
+        '_cocube_calculate_distance_error target_x _ target_y _' target_x target_y
+        _cocube_target_angle = (('[misc:atan2]' _cocube_error_y _cocube_error_x) / 100)
+        '_cocube_calculate_angle_error_' _cocube_target_angle
+        'CoCube set wheel' (speed - ((speed * _cocube_error_angle) / 20)) (speed + ((speed * _cocube_error_angle) / 20))
         waitMillis 10
       }
+      'CoCube wheels break'
+      return 0
     }
   } else {
     sayIt 'Please put CoCube on Mat'
@@ -890,21 +891,23 @@ to '_cocube_pid_right_motor' {
 
 module 'CoCube Module'
 author 'Liang Shuai'
-version 1 9 
-depends Servo NeoPixel 'Robots/CoCube' 'Sensing/Distance (VL53L0X)' 'Sensing/Gesture (PAJ7620)' 
+version 1 10 
+depends _Servo NeoPixel 'Robots/CoCube' '_Sensing/Distance (VL53L0X)' '_Sensing/Gesture (PAJ7620)' 
 description 'External modules of CoCube.
 
 CoCube is a tabletop modular multi-robot platform for education and research.
 https://www.cocubefun.com/
+https://wiki.cocube.fun/
 sliang23@m.fudan.edu.cn
 
 Note: All functions start by turning on pin 13 to power the module.
 The power pin is off by default and is also turned off by the IDE stop button.'
-variables ccmodule_lastDistance 
+variables _cc_cam_init_flag 
 
   spec ' ' 'ccmodule_gripper open' 'gripper open'
   spec ' ' 'ccmodule_gripper close' 'gripper close'
   spec ' ' 'ccmodule_gripper degree' 'gripper degrees _ (0 to 70)' 'num' 0
+  spec ' ' 'ccmodule_gripper stop' 'gripper stop'
   space
   spec ' ' 'ccmodule_attach NeoPixels' 'attach NeoPixels'
   spec ' ' 'ccmodule_set all NeoPixels color' 'set all NeoPixels color _' 'color'
@@ -917,61 +920,39 @@ variables ccmodule_lastDistance
   spec 'r' 'ccmodule_gesture read' '3D gesture read'
   space
   spec ' ' 'ccmodule_power on module' 'power on module'
-  space
-  spec 'r' '_ccmodule_ultrasonic distance' 'ultrasonic distance (mm)'
-
-to '_ccmodule_ultrasonic distance' {
-  local 'trig' 21
-  local 'echo' 22
-  comment 'Reset pulse capture system.'
-  local 'ignore' ('[sensors:captureEnd]')
-  digitalWriteOp trig false
-  waitMicros 2
-  digitalWriteOp trig true
-  waitMicros 50
-  digitalWriteOp trig false
-  comment 'Wait for a low-to-high edge on the echo pin.
-Timeout if an edge is not detected. '
-  local 'start' (millisOp)
-  waitUntil (or (not (digitalReadOp echo)) ((millisSince start) > 2))
-  waitUntil (or (digitalReadOp echo) ((millisSince start) > 2))
-  if ((millisSince start) > 2) {
-    comment 'Distance sensor not ready; return the last distance reading'
-    return ccmodule_lastDistance
-  }
-  comment 'Starting pulse was sent. Measure time until echo is detected.'
-  '[sensors:captureStart]' echo
-  start = (millisOp)
-  waitUntil (or (('[sensors:captureCount]') > 0) ((millisSince start) > 25))
-  comment 'Default value of 23320 usecs reports 4000 mm
-when no echo is detected.'
-  local 'echoMicrosecs' 23320
-  if (('[sensors:captureCount]') > 0) {
-    echoMicrosecs = (absoluteValue (at 1 ('[sensors:captureEnd]')))
-  }
-  ccmodule_lastDistance = ((100 * echoMicrosecs) / 583)
-  comment 'Leave some time for reverberations to die away.'
-  waitMillis 10
-  return ccmodule_lastDistance
-}
+  spec 'r' '_ccmodule_ultrasonic distance' 'obsolete ultrasonic distance (mm)'
 
 to 'ccmodule_ToF connected' {
-  stopServo 22
-  digitalWriteOp 13 true
+  if (_cc_cam_init_flag == 1) {
+    '[sensors:i2cWrite]' (hexToInt '58') ('[data:asByteArray]' ('[data:makeList]' (hexToInt '3') 255))
+  } else {
+    stopServo 22
+    digitalWriteOp 13 true
+  }
   return ('VL53L0X connected')
 }
 
 to 'ccmodule_ToF distance' {
-  stopServo 22
-  digitalWriteOp 13 true
+  if (_cc_cam_init_flag == 1) {
+    '[sensors:i2cWrite]' (hexToInt '58') ('[data:asByteArray]' ('[data:makeList]' (hexToInt '3') 255))
+    stopServo 22
+    digitalWriteOp 13 true
+  } else {
+    stopServo 22
+    digitalWriteOp 13 true
+  }
   return ('VL53L0X distance (mm)')
 }
 
 to 'ccmodule_attach NeoPixels' {
-  stopServo 22
-  digitalWriteOp 13 true
-  waitMillis 10
-  neoPixelAttach 48 22
+  if (_cc_cam_init_flag == 1) {
+    sayIt 'AI camera doesn''t support this module. Please connect directly.'
+  } else {
+    stopServo 22
+    digitalWriteOp 13 true
+    waitMillis 10
+    neoPixelAttach 48 22
+  }
 }
 
 to 'ccmodule_clear NeoPixels' {
@@ -980,37 +961,68 @@ to 'ccmodule_clear NeoPixels' {
 }
 
 to 'ccmodule_gesture connected' {
-  stopServo 22
-  digitalWriteOp 13 true
+  if (_cc_cam_init_flag == 1) {
+    '[sensors:i2cWrite]' (hexToInt '58') ('[data:asByteArray]' ('[data:makeList]' (hexToInt '3') 255))
+  } else {
+    stopServo 22
+    digitalWriteOp 13 true
+  }
   return ('paj7620 connected')
 }
 
 to 'ccmodule_gesture read' {
-  stopServo 22
-  digitalWriteOp 13 true
+  if (_cc_cam_init_flag == 1) {
+    '[sensors:i2cWrite]' (hexToInt '58') ('[data:asByteArray]' ('[data:makeList]' (hexToInt '3') 255))
+  } else {
+    stopServo 22
+    digitalWriteOp 13 true
+  }
   return ('paj7620 read')
 }
 
 to 'ccmodule_gripper close' {
-  digitalWriteOp 13 true
-  setServoAngle 22 -70
+  if (_cc_cam_init_flag == 1) {
+    '[sensors:i2cWrite]' (hexToInt '58') ('[data:asByteArray]' ('[data:makeList]' (hexToInt '2') 0 28))
+  } else {
+    digitalWriteOp 13 true
+    setServoAngle 22 -70
+  }
 }
 
 to 'ccmodule_gripper degree' degree {
-  digitalWriteOp 13 true
-  local 'var' (degree - 70)
-  if (var < -70) {
-    setServoAngle 22 -70
-  } (var > 0) {
-    setServoAngle 22 0
+  if (_cc_cam_init_flag == 1) {
+    stopServo 22
+    local 'hex' (7168 - ((degree * 2048) / 70))
+    '[sensors:i2cWrite]' (hexToInt '58') ('[data:asByteArray]' ('[data:makeList]' (hexToInt '2') (hex & (hexToInt 'FF')) (hex >> 8)))
   } else {
-    setServoAngle 22 var
+    digitalWriteOp 13 true
+    local 'var' (degree - 70)
+    if (var < -70) {
+      setServoAngle 22 -70
+    } (var > 0) {
+      setServoAngle 22 0
+    } else {
+      setServoAngle 22 var
+    }
   }
 }
 
 to 'ccmodule_gripper open' {
-  digitalWriteOp 13 true
-  setServoAngle 22 0
+  if (_cc_cam_init_flag == 1) {
+    '[sensors:i2cWrite]' (hexToInt '58') ('[data:asByteArray]' ('[data:makeList]' (hexToInt '2') 0 20))
+  } else {
+    digitalWriteOp 13 true
+    setServoAngle 22 0
+  }
+}
+
+to 'ccmodule_gripper stop' {
+  if (_cc_cam_init_flag == 1) {
+    '[sensors:i2cWrite]' (hexToInt '58') ('[data:asByteArray]' ('[data:makeList]' (hexToInt '2') 0 0))
+  } else {
+    digitalWriteOp 13 true
+    stopServo 22
+  }
 }
 
 to 'ccmodule_power on module' {
@@ -1142,9 +1154,10 @@ to file_SkipBytes offset file {
 
 module 'LED Display' Output
 author MicroBlocks
-version 1 9 
+version 1 13 
 choices led_imageMenu heart 'small heart' yes no happy sad confused angry asleep surprised silly fabulous meh 't-shirt' 'roller skate' duck house tortoise butterfly 'stick figure' ghost sword giraffe skull umbrella snake rabbit cow 'quarter note' 'eight note' pitchfork target triangle 'left triangle' 'chess board' diamond 'small diamond' square 'small square' scissors 
-description 'Display primitives for the 5x5 LED display on the BBC micro:bit, Calliope mini and M5Atom Matrix. Boards with TFT displays (such as the Citilab ED1 or the M5Stack family) support these primitives with a simulated "fat pixel" display.'
+description 'Display primitives for the 5x5 LED display on the BBC micro:bit, Calliope mini and M5Atom Matrix. Boards with TFT displays (such as the Citilab ED1 or the M5Stack family) support these primitives with a simulated "fat pixel" display.
+'
 variables _stop_scrolling_text 
 
   spec ' ' '[display:mbDisplay]' 'display _' 'microbitDisplay' 15237440
@@ -1157,17 +1170,15 @@ variables _stop_scrolling_text
   spec ' ' 'displayCharacter' 'display character _' 'str' 'A'
   spec ' ' 'scroll_text' 'scroll text _ : pausing _ ms' 'str num' 'HELLO ROSA!' 100
   spec ' ' 'stopScrollingText' 'stop scrolling'
+  advanced
+  spec ' ' 'set display color' 'set display color _' 'color'
+  spec 'r' 'led_image' 'led image _' 'microbitDisplay' 15237440
   space
   spec 'r' '_led_image' 'led image _' 'microbitDisplay' 15237440
   spec 'r' '_led_namedImage' '_led_namedImage _' 'menu.led_imageMenu' 'happy'
   spec 'r' '_led_imageData' '_led_imageData'
   space
   spec ' ' 'set display color' 'set display color _' 'color'
-
-to '_led_image' twentyFiveBitInt {
-  comment 'An LED image is a 25-bit integer'
-  return twentyFiveBitInt
-}
 
 to '_led_imageData' {
   return 'heart:4685802,small heart:145728,yes:2269696,no:18157905,happy:15237440,sad:18284864,confused:22348096,angry:23036241,asleep:459616,surprised:4526090,silly:25984017,fabulous:15008639,meh:2236443,t-shirt:15154043,roller skate:11534104,duck:489702,house:10976708,tortoise:359872,butterfly:29332475,stick figure:18158564,ghost:23068334,sword:4657284,giraffe:10946627,skull:15171246,umbrella:6460398,snake:469859,rabbit:16104613,cow:4685361,quarter note:7573636,eight note:7590276,pitchfork:4357813,target:4681156,triangle:1026176,left triangle:32805985,chess board:11184810,diamond:4539716,small diamond:141440,square:33080895,small square:469440,scissors:20287859,'
@@ -1191,7 +1202,7 @@ to displayCharacter s {
     '[display:mbDisplayOff]'
     return 0
   }
-  '[display:mbDrawShape]' ('[display:mbShapeForLetter]' (at 1 s))
+  '[display:mbDrawShape]' ('[display:mbShapeForLetter]' (at 1 s)) 1 1
 }
 
 to led_displayImage imageName optionalX optionalY {
@@ -1200,6 +1211,11 @@ to led_displayImage imageName optionalX optionalY {
     image = ('_led_namedImage' imageName)
   }
   '[display:mbDrawShape]' image (argOrDefault 2 1) (argOrDefault 3 1)
+}
+
+to led_image twentyFiveBitInt {
+  comment 'An LED image is a 25-bit integer'
+  return twentyFiveBitInt
 }
 
 to scroll_text text optionalDelay {
@@ -1216,6 +1232,15 @@ to scroll_text text optionalDelay {
       '[tft:text]' text (17 - position) 0 (colorSwatch 125 125 125 255) 1 true
       waitMillis (delay / 2)
     }
+  } ('kidsIOT' == (boardType)) {
+    for position (((size text) * 6) + 21) {
+      if _stop_scrolling_text {return 0}
+      '[tft:deferUpdates]'
+      '[tft:clear]'
+      '[tft:text]' text (128 - (6 * position)) 6 (colorSwatch 255 255 255 255) 6 false
+      '[tft:resumeUpdates]'
+      waitMillis (delay / 8)
+    }
   } else {
     for position (((size text) * 6) + 6) {
       if _stop_scrolling_text {return 0}
@@ -1228,7 +1253,7 @@ to scroll_text text optionalDelay {
 }
 
 to 'set display color' color {
-  callCustomCommand '[display:mbSetColor]' ('[data:makeList]' color)
+  '[display:mbSetColor]' color
 }
 
 to stopScrollingText {
@@ -1240,10 +1265,10 @@ to stopScrollingText {
 
 module NeoPixel Output
 author MicroBlocks
-version 1 11 
+version 1 13 
 description 'Control NeoPixel (WS2812) RGB LED strips and rings.
 '
-variables _np_pixels 
+variables _np_pixels _np_pin _np_haswhite 
 
   spec ' ' 'neoPixelAttach' 'attach _ LED NeoPixel strip to pin _ : has white _' 'num auto bool' 10 '' false
   spec ' ' 'setNeoPixelColors10' 'set NeoPixels _ _ _ _ _ _ _ _ _ _' 'color color color color color color color color color color'
@@ -1298,6 +1323,10 @@ to '_NeoPixel_ensureInitialized' {
   } ((boardType) == 'D1-Mini') {
     comment 'D1 mini kit'
     neoPixelAttach 7 15 false
+  } ((boardType) == 'FOXBIT') {
+    neoPixelAttach 35 '' false
+  } ((boardType) == 'CodingBox') {
+    neoPixelAttach 35 '' false
   } else {
     neoPixelAttach 10 '' false
   }}
@@ -1345,6 +1374,8 @@ to '_NeoPixel_shift_hue' i delta {
 }
 
 to '_NeoPixel_update' {
+  comment 'NeoPixel pin and hasWhite may have been changed by another library.'
+  '[display:neoPixelSetPin]' _np_pin _np_hasWhite
   '[display:neoPixelSend]' _np_pixels
   waitMicros 300
 }
@@ -1363,15 +1394,16 @@ to colorFromRGB r g b {
 }
 
 to neoPixelAttach number pinNumber optionalHasWhite {
-  hasWhite = false
+  _np_pin = pinNumber
+  _np_hasWhite = false
   if ((pushArgCount) > 2) {
-    hasWhite = optionalHasWhite
+    _np_hasWhite = optionalHasWhite
   }
   if (or (_np_pixels == 0) (number != (size _np_pixels))) {
     _np_pixels = (newList number)
   }
   atPut 'all' _np_pixels 0
-  '[display:neoPixelSetPin]' pinNumber hasWhite
+  '[display:neoPixelSetPin]' _np_pin _np_hasWhite
 }
 
 to neoPixelSetAllToColor color {
@@ -1384,22 +1416,14 @@ to neoPixel_colorSwatch color {
   return color
 }
 
-to randomColor {
-  local 'n1' (random 100 200)
-  local 'n2' (random 0 100)
-  if (1 == (random 1 3)) {
-    return ((n1 << 16) | (n2 << 8))
-  } (1 == (random 1 2)) {
-    return ((n2 << 16) | n1)
-  } else {
-    return ((n1 << 8) | n2)
-  }
-}
-
 to rotateNeoPixelsBy n {
   '_NeoPixel_ensureInitialized'
+  local 'rotateLeft' (n < 0)
+  if (or ((boardType) == 'CircuitPlayground') ((boardType) == 'CircuitPlayground Bluefruit')) {
+    rotateLeft = (n > 0)
+  }
   repeat (absoluteValue n) {
-    '_NeoPixel_rotate' (n > 0)
+    '_NeoPixel_rotate' rotateLeft
   }
   '_NeoPixel_update'
 }
@@ -1558,8 +1582,8 @@ from the integral and derivitive terms.'
 
 module Ringtone Output
 author MicroBlocks
-version 1 2 
-depends Tone 
+version 1 3 
+depends _Tone 
 description 'Plays tunes in RTTTL (Ringtone Text Transfer Language) a language developed by Nokia to store ringtones.
 Also known as Nokring.'
 variables '_RTTTL default duration' '_RTTTL default octave' '_RTTTL bpm' '_RTTTL song name' 
@@ -1666,7 +1690,7 @@ to 'play ringtone' RTTTL {
 
 module Servo Output
 author MicroBlocks
-version 1 3 
+version 1 4 
 tags servo motor angle rotation position 
 description 'Control both positional (angle) and rotational servo motors.
 '
@@ -1689,7 +1713,7 @@ to '_servoIndex' which {
   if (i < 0) {
     comment 'Add new pin'
     '[data:addLast]' which _servoPin
-    '[data:addLast]' '1500' _servoPulseWidth
+    '[data:addLast]' 1500 _servoPulseWidth
     i = (size _servoPin)
   }
   return i
@@ -1700,7 +1724,7 @@ to '_servoPulse' pin usecs {
     comment 'Servo stopped; do nothing'
     return 0
   }
-  usecs = (maximum 850 (minimum usecs 2150))
+  usecs = (maximum 500 (minimum usecs 2900))
   comment 'Split wait into a long wait followed by a wait of <= 30 usecs for greater accuracy'
   local 'endTime' ((microsOp) + usecs)
   digitalWriteOp pin true
@@ -1771,7 +1795,7 @@ to stopServo which {
 
 module TFT Output
 author MicroBlocks
-version 1 11 
+version 1 12 
 description 'Draw graphics and write text on boards with a TFT display, such as the M5Stack, M5Stick, Citilab ED1 or (discontinued) IoT-Bus.'
 
   spec ' ' '[tft:clear]' 'clear TFT display'
@@ -1825,11 +1849,24 @@ to makeGray percent {
   return ((gray << 16) | ((gray << 8) | gray))
 }
 
+to randomColor {
+  local 'n1' (random 100 200)
+  local 'n2' (random 0 100)
+  if (1 == (random 1 3)) {
+    return ((n1 << 16) | (n2 << 8))
+  } (1 == (random 1 2)) {
+    return ((n2 << 16) | n1)
+  } else {
+    return ((n1 << 8) | n2)
+  }
+}
+
 to tft_colorSwatch color {
   return color
 }
 
 to tft_drawText s x y color optionalScale optionalBGColor {
+  s = ('[data:convertType]' s 'string')
   local 'scale' (argOrDefault 5 2)
   local 'bgColor' (argOrDefault 6 '')
   local 'lines' ('[data:split]' s ('[data:unicodeString]' 10))
@@ -1852,7 +1889,7 @@ to tft_drawVector x y angle length color {
 
 module Tone Output
 author MicroBlocks
-version 1 9 
+version 1 10 
 tags tone sound music audio note speaker 
 choices tone_NoteName 'nt;c' 'nt;c#' 'nt;d' 'nt;d#' 'nt;e' 'nt;f' 'nt;f#' 'nt;g' 'nt;g#' 'nt;a' 'nt;a#' 'nt;b' 
 description 'Audio tone generation. Make music with MicroBlocks!
@@ -1969,6 +2006,8 @@ to 'attach buzzer to pin' pinNumber {
       _tonePin = 25
     } ((boardType) == 'D1-Mini') {
       _tonePin = 12
+    } ((boardType) == 'CodingBox') {
+      _tonePin = 32
     } else {
       _tonePin = -1
     }
@@ -2026,13 +2065,16 @@ to stopTone {
 
 module WiFi Comm
 author MicroBlocks
-version 1 8 
+version 1 10 
 tags communication network 
 description 'Connect to a WiFi network. Used in conjunction with other network libraries, such as HTTP client, HTTP server or Web Thing.
 '
 
   spec ' ' 'wifiConnect' 'wifi connect to _ password _ : IP _ gateway _ subnet _' 'str str auto auto auto' 'Network_Name' '' '192.168.1.42' '192.168.1.1' '255.255.255.0'
   spec ' ' 'wifiCreateHotspot' 'wifi create hotspot _ password _' 'str str' 'Network_Name' 'Network_Password'
+  spec ' ' '[net:stopWiFi]' 'stop wifi'
+  space
+  spec ' ' '[net:setDomainName]' 'wifi set local domain name _ .local' 'str' 'microblocks'
   space
   spec 'r' 'getIPAddress' 'IP address'
   spec 'r' '[net:myMAC]' 'MAC address'
@@ -2071,6 +2113,7 @@ to wifiConnect ssid password fixedIP gatewayIP subnetIP {
     setUserLED false
     waitMillis 50
   }
+  '[net:setDomainName]' 'microblocks'
   sayIt 'My IP address is:' ('[net:myIPAddress]')
 }
 
@@ -2092,6 +2135,7 @@ to wifiCreateHotspot ssid password {
     setUserLED false
     waitMillis 50
   }
+  '[net:setDomainName]' 'microblocks'
   sayIt 'My IP address is:' ('[net:myIPAddress]')
 }
 
